@@ -135,12 +135,12 @@ class ModeradorIA {
             'tonto', 'tonta', 'bobo', 'boba', 'bruto', 'bruta',
             'estupida', 'estúpida', 'inutil', 'inútil', 'tarado', 'tarada',
             'retrasado', 'retrasada', 'mongoloide', 'subnormal',
-            'pendejo', 'pendeja', 'puto', 'puta', 'cabron', 'cabrón',
+            'pendejo', 'pendeja', 'puto', 'putos', 'puta', 'joto', 'jotos', 'cabron', 'cabrón',
             'cabrona', 'joder', 'mierda', 'cagada', 'chingada',
-            'verga', 'huevon', 'huevón', 'wey', 'güey', 'menso', 'mensa',
+            'verga', 'vrg', 'huevon', 'huevón', 'we', 'wey', 'gue', 'guey', 'güey', 'menso', 'mensa',
             'basura', 'escoria', 'desgraciado', 'desgraciada',
             'miserable', 'rastrero', 'rastrera', 'lacra',
-            'animal', 'bestia', 'payaso', 'ridiculo', 'ridículo',
+            'bestia', 'payaso', 'ridiculo', 'ridículo',
             'ridicula', 'ridícula', 'patético', 'patetica', 'patética',
             'stupid', 'idiot', 'moron', 'dumb', 'loser',
             'asshole', 'bitch', 'bastard', 'fuck you'
@@ -153,7 +153,7 @@ class ModeradorIA {
                 return $this->crearResultado(
                     false,
                     "Lenguaje irrespetuoso detectado - Por favor mantén un tono cordial",
-                    0.88,
+                    0.8,
                     'Filtro_Insultos',
                     ['palabra_detectada' => $insulto]
                 );
@@ -320,7 +320,7 @@ class ModeradorIA {
     // ANÁLISIS CON IA
     
     private function analizarConOpenAI($texto) {
-        error_log("🤖 Usando OpenAI Moderation API");
+        error_log("Usando OpenAI Moderation API");
         
         $url = "https://api.openai.com/v1/moderations";
         
