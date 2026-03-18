@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 if (!isset($_SESSION['usuario'])) {
-    header("Location: login.php");
+    header("Location: index.php");
     exit();
 }
 
@@ -34,6 +34,7 @@ if ($resultado_usuario && $resultado_usuario->num_rows > 0) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LibertyMap - Contacto</title>
+    <link rel="icon" type="image/x-icon" href="Img/Logo - LibertyMap.png">
     <link rel="stylesheet" href="Styles/contacto-style.css">
 </head>
 <body>
@@ -58,7 +59,7 @@ if ($resultado_usuario && $resultado_usuario->num_rows > 0) {
   </div>
 
   <nav class="sidebar-nav">
-    <a href="mapa.php" class="nav-item">
+    <a href="batallas.php" class="nav-item">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
         <circle cx="12" cy="10" r="3"></circle>
@@ -272,7 +273,7 @@ if ($resultado_usuario && $resultado_usuario->num_rows > 0) {
             </div>
             <div class="contact-title">
               <span class="contact-role advisor-role">Asesor Técnico</span>
-              <h3 class="contact-name">Emily Yazmin de la Garza Acuña</h3>
+              <h3 class="contact-name">Carlos Mario Balboa Casanova</h3>
             </div>
           </div>
           <div class="contact-info">
@@ -281,13 +282,13 @@ if ($resultado_usuario && $resultado_usuario->num_rows > 0) {
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                 <polyline points="22,6 12,13 2,6"></polyline>
               </svg>
-              <a href="mailto:emilyyazmin.delagarza.cb271@dgeti.sems.gob.mx">emilyyazmin.delagarza.cb271@dgeti.sems.gob.mx</a>
+              <a href="mailto:">carlosmario.balboa.cb271@dgeti.sems.gob.mx</a>
             </div>
             <div class="contact-item">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
               </svg>
-              <a href="tel:8341060239">834 106 0239</a>
+              <a href="tel:8341018594">834 101 8594</a>
             </div>
           </div>
         </div>
@@ -303,7 +304,7 @@ if ($resultado_usuario && $resultado_usuario->num_rows > 0) {
             </div>
             <div class="contact-title">
               <span class="contact-role advisor-role">Asesor Metodológico</span>
-              <h3 class="contact-name">Daniel Vázquez Sánchez</h3>
+              <h3 class="contact-name">Sergio Isauro Flores Vázquez</h3>
             </div>
           </div>
           <div class="contact-info">
@@ -312,13 +313,13 @@ if ($resultado_usuario && $resultado_usuario->num_rows > 0) {
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                 <polyline points="22,6 12,13 2,6"></polyline>
               </svg>
-              <a href="mailto:dvazquez.docencia@gmail.com">dvazquez.docencia@gmail.com</a>
+              <a href="mailto:sergio_flores89@hotmail.com">sergio_flores89@hotmail.com</a>
             </div>
             <div class="contact-item">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
               </svg>
-              <a href="tel:834142092">834 142 092</a>
+              <a href="tel:8341432268">834 143 2268</a>
             </div>
           </div>
         </div>
