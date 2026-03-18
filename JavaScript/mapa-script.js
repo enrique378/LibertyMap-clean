@@ -250,6 +250,12 @@ style: {
 // Variables
 var marcadores = [];
 var preguntasPorBatalla = {};
+var batallasData = [];
+var filtrosActivos = {
+  año: '',
+  estado: '',
+  busqueda: ''
+};
 
 // Cargar Preguntas
 fetch('Conexiones/obtener_preguntas.php')
@@ -261,8 +267,15 @@ fetch('Conexiones/obtener_preguntas.php')
 })
 .then(data => {
   console.log("Preguntas recibidas:", data);
+  
+  // ✅ CAMBIO: Usar idBatalla directamente en lugar de calcular
   data.forEach(item => {
-    const batallaId = Math.ceil(item.idPregunta / 2);
+    const batallaId = item.idBatalla; // Usar el ID de batalla del PHP
+    
+    if (!batallaId) {
+      console.warn('Pregunta sin idBatalla:', item);
+      return; // Saltar preguntas sin batalla asociada
+    }
     
     if (!preguntasPorBatalla[batallaId]) {
       preguntasPorBatalla[batallaId] = [];
@@ -324,7 +337,19 @@ fetch('Conexiones/obtener_batallas.php')
     return;
   }
 
-  data.forEach(item => {
+  batallasData = data;
+  crearMarcadores(data);
+})
+.catch(error => {
+  console.error('Error al cargar batallas:', error);
+});
+
+// Crear marcadores en el mapa
+function crearMarcadores(batallas) {
+  marcadores.forEach(m => map.removeLayer(m));
+  marcadores = [];
+
+  batallas.forEach(item => {
     if (!item.latitud || !item.longitud || !item.nombre) {
       console.warn('Batalla con datos incompletos:', item);
       return;
@@ -343,6 +368,9 @@ fetch('Conexiones/obtener_batallas.php')
     console.log(`Marcador agregado: ${item.nombre} en [${item.latitud}, ${item.longitud}]`);
 
     marker.idBatalla = parseInt(item.id);
+    marker.nombreBatalla = item.nombre;
+    marker.fechaBatalla = item.fecha;
+    marker.estadoBatalla = item.estado;
     marcadores.push(marker);
 
     marker.bindPopup(`<b>${item.nombre}</b>`);
@@ -368,15 +396,12 @@ fetch('Conexiones/obtener_batallas.php')
             return;
           }
 
-          // Centrar Mapa y Mostrar Panel de Información
           if (batalla.latitud && batalla.longitud) {
             const lat = parseFloat(batalla.latitud);
             const lng = parseFloat(batalla.longitud);
             
-            // Centrar el mapa sin offset
             map.setView([lat, lng], 8);
             
-            // Aplicar el offset después de un delay
             setTimeout(() => {
               if (window.innerWidth > 1024) {
                 const currentCenter = map.getCenter();
@@ -400,36 +425,42 @@ fetch('Conexiones/obtener_batallas.php')
         });
     });
   });
-})
-.catch(error => {
-  console.error('Error al cargar batallas:', error);
-});
+}
 
 // Función para formatear fechas
 function formatearFecha(fecha) {
-if (!fecha || fecha === '0000-00-00') {
-  return "Fecha desconocida";
-}
-
-const meses = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
-];
-
-try {
-  const partes = fecha.split('-');
-  if (partes.length === 3) {
-    const anio = partes[0];
-    const mes = parseInt(partes[1]) - 1;
-    const dia = parseInt(partes[2]);
-    
-    return `${dia} de ${meses[mes]} de ${anio}`;
-  }
+  console.log("Fecha recibida:", fecha, "Tipo:", typeof fecha); // Debug
   
-  return fecha;
-} catch (e) {
-  return fecha;
-}
+  if (!fecha || fecha === '0000-00-00' || fecha === '' || fecha === null) {
+    return "Fecha desconocida";
+  }
+
+  const meses = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+  ];
+
+  try {
+    // Si la fecha viene como string en formato YYYY-MM-DD
+    const partes = fecha.toString().split('-');
+    
+    if (partes.length === 3) {
+      const anio = partes[0];
+      const mes = parseInt(partes[1]) - 1;
+      const dia = parseInt(partes[2]);
+      
+      // Validar que los valores sean válidos
+      if (anio && anio !== '0000' && mes >= 0 && mes < 12 && dia > 0 && dia <= 31) {
+        return `${dia} de ${meses[mes]} de ${anio}`;
+      }
+    }
+    
+    // Si no se pudo formatear, devolver la fecha tal cual
+    return fecha.toString();
+  } catch (e) {
+    console.error("Error al formatear fecha:", e);
+    return fecha.toString();
+  }
 }
 
 // Mostrar Panel de Información
@@ -484,76 +515,59 @@ if (infoContent) {
 
 // Batalla Aleatoria
 window.mostrarBatallaAleatoria = function() {
-fetch('Conexiones/obtener_batallas.php')
+const batallasVisibles = marcadores.filter(m => map.hasLayer(m));
+  
+if (batallasVisibles.length === 0) {
+  alert('No hay batallas disponibles con los filtros actuales');
+  return;
+}
+
+const randomIndex = Math.floor(Math.random() * batallasVisibles.length);
+const markerAleatorio = batallasVisibles[randomIndex];
+const batallaId = markerAleatorio.idBatalla;
+
+console.log("Cargando detalles de batalla aleatoria ID:", batallaId);
+
+fetch(`Conexiones/obtener_batalla.php?id=${batallaId}`)
   .then(res => {
     if (!res.ok) {
-      throw new Error('Error al cargar batallas: ' + res.status);
+      throw new Error('Error al cargar batalla: ' + res.status);
     }
     return res.json();
   })
-  .then(data => {
-    if (!data || (Array.isArray(data) && data.length === 0)) {
-      console.warn('No hay batallas disponibles');
+  .then(detalleData => {
+    const batalla = Array.isArray(detalleData) ? detalleData.find(b => b.id == batallaId) : detalleData;
+    
+    if (!batalla) {
+      console.error('No se encontró la batalla con ID:', batallaId);
       return;
     }
 
-    const randomIndex = Math.floor(Math.random() * data.length);
-    const batallaBasica = data[randomIndex];
-    const batallaId = batallaBasica.id || batallaBasica.idBatalla;
+    if (batalla.latitud && batalla.longitud) {
+      const lat = parseFloat(batalla.latitud);
+      const lng = parseFloat(batalla.longitud);
+      
+      map.setView([lat, lng], 8);
+      
+      setTimeout(() => {
+        if (window.innerWidth > 1024) {
+          const currentCenter = map.getCenter();
+          const panelWidth = 420;
+          const mapWidth = map.getSize().x;
+          const bounds = map.getBounds();
+          const lngDiff = bounds.getEast() - bounds.getWest();
+          const offset = (panelWidth / mapWidth) * lngDiff / 2;
+          
+          map.setView([currentCenter.lat, currentCenter.lng + offset], 8, {animate: true});
+        }
+      }, 100);
+    }
+
+    mostrarInfoPanel(batalla, batallaId);
     
-    console.log("Cargando detalles de batalla aleatoria ID:", batallaId);
-
-    return fetch(`Conexiones/obtener_batalla.php?id=${batallaId}`)
-      .then(res => {
-        if (!res.ok) {
-          throw new Error('Error al cargar batalla: ' + res.status);
-        }
-        return res.json();
-      })
-      .then(detalleData => {
-        const batalla = Array.isArray(detalleData) ? detalleData.find(b => b.id == batallaId) : detalleData;
-        
-        if (!batalla) {
-          console.error('No se encontró la batalla con ID:', batallaId);
-          return;
-        }
-
-        // Centrar el Mapa
-        if (batalla.latitud && batalla.longitud) {
-          const lat = parseFloat(batalla.latitud);
-          const lng = parseFloat(batalla.longitud);
-          
-          map.setView([lat, lng], 8);
-          
-          // Offset después de delay
-          setTimeout(() => {
-            if (window.innerWidth > 1024) {
-              const currentCenter = map.getCenter();
-              const panelWidth = 420;
-              const mapWidth = map.getSize().x;
-              const bounds = map.getBounds();
-              const lngDiff = bounds.getEast() - bounds.getWest();
-              const offset = (panelWidth / mapWidth) * lngDiff / 2;
-              
-              map.setView([currentCenter.lat, currentCenter.lng + offset], 8, {animate: true});
-            }
-          }, 100);
-        }
-
-        mostrarInfoPanel(batalla, batallaId);
-        
-        // Abrir Popup
-        setTimeout(() => {
-          const marcadorEncontrado = marcadores.find(m => m.idBatalla === parseInt(batallaId));
-          if (marcadorEncontrado) {
-            console.log("Abriendo popup del marcador:", batallaId);
-            marcadorEncontrado.openPopup();
-          } else {
-            console.warn("No se encontró el marcador con ID:", batallaId);
-            console.log("Marcadores disponibles:", marcadores.map(m => m.idBatalla));
-          }
-        }, 500);
-      });
+    setTimeout(() => {
+      markerAleatorio.openPopup();
+    }, 500);
   })
   .catch(error => {
     console.error('Error al obtener batalla aleatoria:', error);
@@ -561,77 +575,241 @@ fetch('Conexiones/obtener_batallas.php')
   });
 };
 
+// FUNCIONES DE FILTROS
+
+// Abrir modal de filtros
+window.abrirFiltros = function() {
+  console.log("Abriendo modal de filtros");
+  const modal = document.getElementById('filterModal');
+  const overlay = document.getElementById('filterModalOverlay');
+  
+  if (modal && overlay) {
+    modal.classList.add('active');
+    overlay.classList.add('active');
+  } else {
+    console.error("No se encontraron elementos del modal");
+  }
+};
+
+// Cerrar modal de filtros
+window.cerrarFiltros = function() {
+  console.log("Cerrando modal de filtros");
+  const modal = document.getElementById('filterModal');
+  const overlay = document.getElementById('filterModalOverlay');
+  
+  if (modal && overlay) {
+    modal.classList.remove('active');
+    overlay.classList.remove('active');
+  }
+};
+
+// Aplicar filtros
+window.aplicarFiltros = function() {
+  console.log("Aplicando filtros...");
+  
+  const añoElement = document.getElementById('filterYear');
+  const estadoElement = document.getElementById('filterState');
+  const busquedaElement = document.getElementById('searchBattle');
+  
+  if (!añoElement || !estadoElement || !busquedaElement) {
+    console.error("No se encontraron los elementos de filtro");
+    return;
+  }
+  
+  const año = añoElement.value;
+  const estado = estadoElement.value;
+  const busqueda = busquedaElement.value.toLowerCase().trim();
+
+  console.log("Filtros aplicados:", { año, estado, busqueda });
+
+  filtrosActivos = { año, estado, busqueda };
+
+  const batallasFiltradas = batallasData.filter(batalla => {
+    let cumpleAño = true;
+    let cumpleEstado = true;
+    let cumpleBusqueda = true;
+
+    // Filtro por año
+    if (año) {
+      cumpleAño = batalla.fecha && batalla.fecha.startsWith(año);
+    }
+
+    // Filtro por estado
+    if (estado) {
+      cumpleEstado = batalla.estado && batalla.estado.trim() === estado.trim();
+    }
+
+    // Filtro por búsqueda
+    if (busqueda) {
+      cumpleBusqueda = batalla.nombre && batalla.nombre.toLowerCase().includes(busqueda);
+    }
+
+    return cumpleAño && cumpleEstado && cumpleBusqueda;
+  });
+
+  console.log(`Batallas filtradas: ${batallasFiltradas.length} de ${batallasData.length}`);
+
+  crearMarcadores(batallasFiltradas);
+  cerrarFiltros();
+
+  if (batallasFiltradas.length === 0) {
+    alert('No se encontraron batallas con los filtros seleccionados');
+  } else {
+    // Ajustar el zoom del mapa para mostrar todas las batallas filtradas
+    if (batallasFiltradas.length > 0 && batallasFiltradas.every(b => b.latitud && b.longitud)) {
+      try {
+        const bounds = L.latLngBounds(
+          batallasFiltradas.map(b => [parseFloat(b.latitud), parseFloat(b.longitud)])
+        );
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 8 });
+      } catch(e) {
+        console.error("Error ajustando zoom:", e);
+      }
+    }
+  }
+};
+
+// Limpiar filtros
+window.limpiarFiltros = function() {
+  console.log("Limpiando filtros");
+  
+  const yearElement = document.getElementById('filterYear');
+  const stateElement = document.getElementById('filterState');
+  const searchElement = document.getElementById('searchBattle');
+  const resultsElement = document.getElementById('searchResults');
+  
+  if (yearElement) yearElement.value = '';
+  if (stateElement) stateElement.value = '';
+  if (searchElement) searchElement.value = '';
+  if (resultsElement) {
+    resultsElement.innerHTML = '';
+    resultsElement.style.display = 'none';
+  }
+  
+  filtrosActivos = { año: '', estado: '', busqueda: '' };
+  
+  crearMarcadores(batallasData);
+  cerrarFiltros();
+  
+  // Resetear vista del mapa
+  map.setView([23.6345, -102.5528], 5);
+};
+
+// Buscador en tiempo real
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("Inicializando buscador en tiempo real");
+  
+  const searchInput = document.getElementById('searchBattle');
+  const searchResults = document.getElementById('searchResults');
+
+  if (searchInput && searchResults) {
+    searchInput.addEventListener('input', function() {
+      const query = this.value.toLowerCase().trim();
+      
+      if (query.length < 2) {
+        searchResults.innerHTML = '';
+        searchResults.style.display = 'none';
+        return;
+      }
+
+      const resultados = batallasData.filter(batalla => 
+        batalla.nombre && batalla.nombre.toLowerCase().includes(query)
+      );
+
+      if (resultados.length > 0) {
+        searchResults.innerHTML = resultados.map(batalla => `
+          <div class="search-result-item" onclick="seleccionarBatalla(${batalla.id}, '${batalla.nombre.replace(/'/g, "\\'")}')">
+            <strong>${batalla.nombre}</strong>
+            <span>${formatearFecha(batalla.fecha)} - ${batalla.estado || 'Sin ubicación'}</span>
+          </div>
+        `).join('');
+        searchResults.style.display = 'block';
+      } else {
+        searchResults.innerHTML = '<div class="search-result-item">No se encontraron resultados</div>';
+        searchResults.style.display = 'block';
+      }
+    });
+
+    // Cerrar resultados al hacer clic fuera
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.style.display = 'none';
+      }
+    });
+  } else {
+    console.warn("No se encontraron elementos de búsqueda");
+  }
+});
+
+// Seleccionar batalla desde el buscador
+window.seleccionarBatalla = function(batallaId, nombreBatalla) {
+  console.log("Batalla seleccionada:", batallaId, nombreBatalla);
+  
+  const searchInput = document.getElementById('searchBattle');
+  const searchResults = document.getElementById('searchResults');
+  
+  if (searchInput) searchInput.value = nombreBatalla;
+  if (searchResults) {
+    searchResults.innerHTML = '';
+    searchResults.style.display = 'none';
+  }
+  
+  const marcadorEncontrado = marcadores.find(m => m.idBatalla === batallaId);
+  
+  if (marcadorEncontrado) {
+    cerrarFiltros();
+    
+    const lat = marcadorEncontrado.getLatLng().lat;
+    const lng = marcadorEncontrado.getLatLng().lng;
+    
+    map.setView([lat, lng], 8);
+    
+    setTimeout(() => {
+      marcadorEncontrado.fire('click');
+    }, 300);
+  } else {
+    console.warn("No se encontró el marcador para la batalla:", batallaId);
+  }
+};
+
 // Toggle Barra Lateral
 document.getElementById('toggleSidebar').addEventListener('click', function() {
-const sidebar = document.getElementById('sidebar');
-sidebar.classList.toggle('active');
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('active');
 });
 
 // Cerrar Barra Lateral
 document.querySelectorAll('.nav-item').forEach(item => {
-item.addEventListener('click', function() {
-  if (window.innerWidth <= 1024) {
-    document.getElementById('sidebar').classList.remove('active');
-  }
-});
+  item.addEventListener('click', function() {
+    if (window.innerWidth <= 1024) {
+      document.getElementById('sidebar').classList.remove('active');
+    }
+  });
 });
 
 // Cerrar Panel con Tecla ESC
 document.addEventListener('keydown', function(event) {
-if (event.key === 'Escape') {
-  cerrarPanel();
-}
+  if (event.key === 'Escape') {
+    cerrarPanel();
+    cerrarFiltros();
+  }
 });
 
 // Cambiar Tema
 function toggleTheme() {
-document.body.classList.toggle('dark-mode');
+  document.body.classList.toggle('dark-mode');
 
-// Guardar preferencia en localStorage
-if (document.body.classList.contains('dark-mode')) {
-  localStorage.setItem('theme', 'dark');
-  // Cambiar Icono a Sol
-  document.getElementById('btnTheme').innerHTML = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="5"></circle>
-      <line x1="12" y1="1" x2="12" y2="3"></line>
-      <line x1="12" y1="21" x2="12" y2="23"></line>
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-      <line x1="1" y1="12" x2="3" y2="12"></line>
-      <line x1="21" y1="12" x2="23" y2="12"></line>
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-    </svg>
-  `;
-} else {
-  localStorage.setItem('theme', 'light');
-  // Cambiar Icono a Luna
-  document.getElementById('btnTheme').innerHTML = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-    </svg>
-  `;
-}
+  if (document.body.classList.contains('dark-mode')) {
+    localStorage.setItem('theme', 'dark');
+  } else {
+    localStorage.setItem('theme', 'light');
+  }
 }
 
 // Cargar Tema Guardado
 document.addEventListener('DOMContentLoaded', function() {
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme === 'dark') {
-  document.body.classList.add('dark-mode');
-  document.getElementById('btnTheme').innerHTML = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="5"></circle>
-      <line x1="12" y1="1" x2="12" y2="3"></line>
-      <line x1="12" y1="21" x2="12" y2="23"></line>
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-      <line x1="1" y1="12" x2="3" y2="12"></line>
-      <line x1="21" y1="12" x2="23" y2="12"></line>
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-    </svg>
-  `;
-}
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    document.body.classList.add('dark-mode');
+  }
 });
